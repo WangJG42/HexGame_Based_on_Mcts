@@ -6,10 +6,11 @@ size = constants.grid_size
 type = constants.game_type
 dx = [0, 1, 0, -1, -1, 1]
 dy = [-1, -1, 1, 1, 0, 0]
-
+breadth=constants.breadth
 
 class node:
     def __init__(self, r, c, mctsMode, parent=None):
+        self.winner = None
         self.board = [[0 for r in range(size)] for c in range(size)]
         self.board[r][c] = mctsMode
         self.reward = 0
@@ -27,7 +28,7 @@ class node:
         temp = True
         if r < 0 or r > size - 1 or c < 0 or c > size - 1:
             temp = False
-        elif board[r][c] != self.mode:
+        elif board[r][c] != -self.mode:
             temp = False
         return temp
 
@@ -49,9 +50,8 @@ class node:
                                     if i + dx[k] == size - 1:
                                         self.winner = -1
                                         return -1
-                                    else:
-                                        judger[i + dx[k]][j + dy[k]] = -2
-                                        temp = True
+                                    judger[i + dx[k]][j + dy[k]] = -2
+                                    temp = True
                             judger[i][j] = -1
 
         elif mcts_mode == 1:
@@ -69,27 +69,24 @@ class node:
                                     if j + dy[k] == size - 1:
                                         self.winner = 1
                                         return 1
-                                    else:
-                                        judger[i + dx[k]][j + dy[k]] = 2
-                                        temp = True
+                                    judger[i + dx[k]][j + dy[k]] = 2
+                                    temp = True
                             judger[i][j] = 1
         return 0
 
     def isLeaf(self):
-        legal = []
         for i in range(size):
             for j in range(size):
                 if self.board[i][j] == 0:
-                    legal.append([i, j])
-        return True if len(legal)!=0 else False
-
+                    return False
+        return True
     def select(self): # mcts 选择节点
         if not len(self.children):
             return self
         best_child, best_uct = self.children[0], -1
         for i in self.children:
             if not i.isleaf():
-                uct = i.reward/i.visit + 2*math.sqrt(math.log(self.visit)/i.visit)
+                uct = (1-i.reward/i.visit*self.mode) + 2*math.sqrt(math.log(self.visit)/i.visit)
                 if uct>best_uct:
                     best_uct = uct
                     best_child = i
@@ -102,7 +99,7 @@ class node:
                 if self.board[i][j] == 0:
                     legal.append([i, j])
         for i in self.children:
-            legal.remove(i.move)
+            legal.remove(i.location)
         if len(legal)==0:
             self.simulate()
         for i in legal:
@@ -110,7 +107,7 @@ class node:
             self.children.append(child)
             child.simulate()
 
-    def simulate(self, breadth=constants.breadth):
+    def simulate(self):
         value = 0
         for i in range(breadth):
             mode2 = -self.mode
@@ -122,14 +119,15 @@ class node:
                 legal = []
                 for a in range(size):
                     for b in range(size):
-                        if self.board[a][b] == 0:
+                        if board2[a][b] == 0:
                             legal.append([a, b])
                 if len(legal)==0:
                     break
-                rad = random.randint(0, len(legal))
+                rad = random.randint(0, len(legal)-1)
                 board2[legal[rad][0]][legal[rad][1]] = mode2
                 mode2 = -mode2
             value += self.isWon(self.mode, board2)
+            print(value)
         self.reward += value/breadth
         self.visit += 1
         self.backup(value/breadth)
@@ -147,7 +145,7 @@ class mcts:
         self.root = node(r, c, mode, None)
         for i in range(size):
             for j in range(size):
-                self.root.board = board[i][j]
+                self.root.board[i][j] = board[i][j]
 
     def move(self):
         for iterations in range(constants.iterations):

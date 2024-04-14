@@ -1,4 +1,5 @@
 import constants
+import numpy as np
 
 size = constants.grid_size
 type = constants.game_type
@@ -24,6 +25,7 @@ class play:
         self.board[r][c] = self.mode
         self.isWon(self.mode)
         self.mode = - self.mode
+        print(np.array(self.board))
 
     def isWon(self, human_mode):
         judger = [[0 for r in range(size)] for c in range(size)]
